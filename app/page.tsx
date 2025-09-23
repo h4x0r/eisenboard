@@ -1,0 +1,107 @@
+"use client"
+
+import { KanbanBoard } from "../components/kanban-board"
+import { TaskStats } from "../components/task-stats"
+import { TaskActions } from "../components/task-actions"
+import { ThemeSwitcher } from "../components/theme-switcher"
+import { ThemeProvider } from "../components/theme-provider"
+import { QuickAddInput } from "../components/quick-add-input"
+import { useTasks } from "../hooks/use-tasks"
+import type { Task } from "../types/task"
+
+export default function HomePage() {
+  const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, getTaskStats } = useTasks()
+
+  console.log("[v0] NODE_ENV:", process.env.NODE_ENV)
+  console.log("[v0] VERCEL_ENV:", process.env.NEXT_PUBLIC_VERCEL_ENV)
+  console.log("[v0] Environment info:", {
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.NEXT_PUBLIC_VERCEL_ENV,
+    isDev: process.env.NODE_ENV === "development",
+    isProd: process.env.NODE_ENV === "production",
+  })
+
+  const handleExport = () => {
+    const dataStr = JSON.stringify(tasks, null, 2)
+    const dataBlob = new Blob([dataStr], { type: "application/json" })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `eisenhower-tasks-${new Date().toISOString().split("T")[0]}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImport = (importedTasks: Task[]) => {
+    const validTasks = importedTasks
+      .filter((task) => task.id && task.title && (task.lane || task.quadrant))
+      .map((task) => ({
+        ...task,
+        // Handle migration from old quadrant format to new lane/status format
+        lane: task.lane || (task as any).quadrant || "neither",
+        status: task.status || "todo",
+        createdAt: new Date(task.createdAt),
+        updatedAt: new Date(task.updatedAt),
+      }))
+
+    if (validTasks.length > 0) {
+      // Clear existing tasks and add imported ones
+      clearAllTasks()
+      validTasks.forEach((task) => addTask(task))
+      alert(`Successfully imported ${validTasks.length} tasks`)
+    } else {
+      alert("No valid tasks found in the imported file")
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <ThemeProvider>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your tasks...</p>
+          </div>
+        </div>
+      </ThemeProvider>
+    )
+  }
+
+  return (
+    <ThemeProvider>
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <h1 className="text-xl font-semibold">EisenBoard</h1>
+            <div className="flex-1 max-w-md">
+              <QuickAddInput onAddTask={addTask} />
+            </div>
+            <div className="flex items-center gap-3">
+              <TaskActions
+                taskCount={tasks.length}
+                onClearAll={clearAllTasks}
+                onExport={handleExport}
+                onImport={handleImport}
+              />
+              <ThemeSwitcher />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="h-screen pt-20 overflow-y-auto bg-background">
+        <main className="container mx-auto px-6 pb-6">
+          <TaskStats stats={getTaskStats()} />
+
+          <KanbanBoard
+            tasks={tasks}
+            onTaskMove={moveTask}
+            onTaskAdd={addTask}
+            onTaskDelete={deleteTask}
+            onTaskEdit={updateTask}
+          />
+        </main>
+      </div>
+    </ThemeProvider>
+  )
+}
