@@ -8,18 +8,15 @@ import { ThemeProvider } from "../components/theme-provider"
 import { QuickAddInput } from "../components/quick-add-input"
 import { useTasks } from "../hooks/use-tasks"
 import type { Task } from "../types/task"
+import { EisenboardIcon } from "../components/eisenboard-icon"
 
 export default function HomePage() {
   const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, getTaskStats } = useTasks()
 
   console.log("[v0] NODE_ENV:", process.env.NODE_ENV)
   console.log("[v0] VERCEL_ENV:", process.env.NEXT_PUBLIC_VERCEL_ENV)
-  console.log("[v0] Environment info:", {
-    nodeEnv: process.env.NODE_ENV,
-    vercelEnv: process.env.NEXT_PUBLIC_VERCEL_ENV,
-    isDev: process.env.NODE_ENV === "development",
-    isProd: process.env.NODE_ENV === "production",
-  })
+  console.log("[v0] isDev:", process.env.NODE_ENV === "development")
+  console.log("[v0] isProd:", process.env.NODE_ENV === "production")
 
   const handleExport = () => {
     const dataStr = JSON.stringify(tasks, null, 2)
@@ -72,7 +69,10 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between gap-4">
-            <h1 className="text-xl font-semibold">EisenBoard</h1>
+            <div className="flex items-center gap-2">
+              <EisenboardIcon className="h-6 w-6" />
+              <h1 className="text-xl font-semibold">EisenBoard</h1>
+            </div>
             <div className="flex-1 max-w-md">
               <QuickAddInput onAddTask={addTask} />
             </div>

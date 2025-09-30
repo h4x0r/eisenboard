@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "EisenBoard - Eisenhower Matrix Kanban",
   description: "Eisenhower Matrix-based Kanban Board",
   generator: "v0.app",
+  icons: {
+    icon: "/favicon.jpg",
+  },
 }
 
 export default function RootLayout({
