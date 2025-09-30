@@ -9,6 +9,8 @@ import { QuickAddInput } from "../components/quick-add-input"
 import { useTasks } from "../hooks/use-tasks"
 import type { Task } from "../types/task"
 import { EisenboardIcon } from "../components/eisenboard-icon"
+import { Button } from "../components/ui/button"
+import { Database } from "lucide-react"
 
 export default function HomePage() {
   const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, getTaskStats } = useTasks()
@@ -17,6 +19,87 @@ export default function HomePage() {
   console.log("[v0] VERCEL_ENV:", process.env.NEXT_PUBLIC_VERCEL_ENV)
   console.log("[v0] isDev:", process.env.NODE_ENV === "development")
   console.log("[v0] isProd:", process.env.NODE_ENV === "production")
+
+  const handleLoadSampleData = () => {
+    const sampleTasks: Omit<Task, "id" | "createdAt" | "updatedAt">[] = [
+      {
+        title: "Fix critical production bug",
+        description: "Database connection timeout affecting users",
+        lane: "urgent-important",
+        status: "in-progress",
+        priority: "high",
+        tags: ["bug", "production"],
+      },
+      {
+        title: "Prepare quarterly presentation",
+        description: "Board meeting next week",
+        lane: "urgent-important",
+        status: "todo",
+        priority: "high",
+        tags: ["presentation"],
+      },
+      {
+        title: "Learn new framework",
+        description: "Study Next.js 15 features",
+        lane: "important-not-urgent",
+        status: "todo",
+        priority: "medium",
+        tags: ["learning"],
+      },
+      {
+        title: "Plan team building event",
+        description: "Organize Q2 team outing",
+        lane: "important-not-urgent",
+        status: "todo",
+        priority: "medium",
+        tags: ["team"],
+      },
+      {
+        title: "Review design mockups",
+        description: "Quick feedback needed",
+        lane: "important-not-urgent",
+        status: "done",
+        priority: "low",
+        tags: ["design"],
+      },
+      {
+        title: "Respond to Slack messages",
+        description: "Multiple threads need replies",
+        lane: "urgent-not-important",
+        status: "in-progress",
+        priority: "low",
+        tags: ["communication"],
+      },
+      {
+        title: "Schedule dentist appointment",
+        description: "Overdue checkup",
+        lane: "urgent-not-important",
+        status: "todo",
+        priority: "low",
+        tags: ["personal"],
+      },
+      {
+        title: "Organize desk cables",
+        description: "Clean up workspace",
+        lane: "neither",
+        status: "todo",
+        priority: "low",
+        tags: ["organization"],
+      },
+      {
+        title: "Browse social media",
+        description: "Check latest updates",
+        lane: "neither",
+        status: "todo",
+        priority: "low",
+        tags: ["leisure"],
+      },
+    ]
+
+    // Clear existing tasks and add sample data
+    clearAllTasks()
+    sampleTasks.forEach((task) => addTask(task))
+  }
 
   const handleExport = () => {
     const dataStr = JSON.stringify(tasks, null, 2)
@@ -77,6 +160,10 @@ export default function HomePage() {
               <QuickAddInput onAddTask={addTask} />
             </div>
             <div className="flex items-center gap-3">
+              <Button onClick={handleLoadSampleData} variant="outline" size="sm" className="gap-2 bg-transparent">
+                <Database className="h-4 w-4" />
+                SAMPLE DATA
+              </Button>
               <TaskActions
                 taskCount={tasks.length}
                 onClearAll={clearAllTasks}
