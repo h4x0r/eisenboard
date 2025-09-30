@@ -6,6 +6,10 @@ export interface Task {
   status: "todo" | "in-progress" | "done"
   createdAt: Date
   updatedAt: Date
+  parentId?: string
+  isExpanded?: boolean
+  priority?: "high" | "medium" | "low"
+  tags?: string[]
 }
 
 export interface Lane {

@@ -7,7 +7,7 @@ import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "EisenBoard - Eisenhower Matrix Kanban",
+  title: "Eisenboard - Eisenhower Matrix Kanban",
   description: "Eisenhower Matrix-based Kanban Board",
   generator: "v0.app",
   icons: {

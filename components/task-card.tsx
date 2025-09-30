@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Card, CardContent } from "./ui/card"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
-import { MoreHorizontal, Edit2, Trash2, GripVertical } from "lucide-react"
+import { MoreHorizontal, Edit2, Trash2, GripVertical, ChevronDown, ChevronRight, Loader2, GitBranch, CornerDownRight } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import type { Task } from "../types/task"
 import { EditTaskDialog } from "./edit-task-dialog"
@@ -17,10 +17,17 @@ interface TaskCardProps {
   onDragEnd: () => void
   onDelete: () => void
   onEdit: (updates: Partial<Task>) => void
+  onExpand?: (task: Task) => void
+  isExpanding?: boolean
+  onBreakdown?: (task: Task) => void
+  isBreakingDown?: boolean
   isDragging: boolean
+  isSubtask?: boolean
+  hasSubtasks?: boolean
+  onToggleExpand?: () => void
 }
 
-export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, isDragging }: TaskCardProps) {
+export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, onExpand, isExpanding, onBreakdown, isBreakingDown, isDragging, isSubtask, hasSubtasks, onToggleExpand }: TaskCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -31,21 +38,46 @@ export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, isDra
 
   return (
     <>
-      <Card
-        draggable
-        onDragStart={handleDragStart}
-        onDragEnd={onDragEnd}
-        className={`cursor-move transition-all duration-200 hover:shadow-md group select-none ${
-          isDragging ? "opacity-50 rotate-2 scale-105 shadow-xl ring-2 ring-primary/50" : "hover:scale-[1.02]"
-        }`}
-        style={{
-          transformOrigin: "center",
-        }}
-      >
+      <div className={`relative ${isSubtask ? "ml-6" : ""}`}>
+        {isSubtask && (
+          <div className="absolute -left-6 top-0 bottom-0 flex items-center">
+            <CornerDownRight className="h-4 w-4 text-muted-foreground/50" />
+          </div>
+        )}
+        <Card
+          draggable={!isSubtask}
+          onDragStart={!isSubtask ? handleDragStart : undefined}
+          onDragEnd={!isSubtask ? onDragEnd : undefined}
+          className={`${!isSubtask ? "cursor-move" : ""} transition-all duration-200 hover:shadow-md group select-none ${
+            isDragging ? "opacity-50 rotate-2 scale-105 shadow-xl ring-2 ring-primary/50" : "hover:scale-[1.02]"
+          } ${isSubtask ? "border-dashed opacity-95" : ""}`}
+          style={{
+            transformOrigin: "center",
+          }}
+        >
         <CardContent className="p-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm text-balance leading-tight mb-1">{task.title}</h4>
+              <div className="flex items-start gap-1">
+                {hasSubtasks && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onToggleExpand?.()
+                    }}
+                    className="h-4 w-4 p-0 mt-0.5"
+                  >
+                    {task.isExpanded ? (
+                      <ChevronDown className="h-3 w-3" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3" />
+                    )}
+                  </Button>
+                )}
+                <h4 className="font-medium text-sm text-balance leading-tight mb-1 flex-1">{task.title}</h4>
+              </div>
               {task.description && (
                 <p className="text-xs text-muted-foreground text-pretty line-clamp-2">{task.description}</p>
               )}
@@ -58,16 +90,40 @@ export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, isDra
             >
               <GripVertical className="h-3 w-3 text-muted-foreground cursor-grab active:cursor-grabbing" />
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                    <MoreHorizontal className="h-3 w-3" />
-                  </Button>
+                <DropdownMenuTrigger className="h-6 w-6 p-0 rounded inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <MoreHorizontal className="h-3 w-3" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
                     <Edit2 className="h-3 w-3 mr-2" />
                     Edit
                   </DropdownMenuItem>
+                  {onBreakdown && (
+                    <DropdownMenuItem
+                      onClick={() => onBreakdown(task)}
+                      disabled={isBreakingDown}
+                    >
+                      {isBreakingDown ? (
+                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      ) : (
+                        <GitBranch className="h-3 w-3 mr-2" />
+                      )}
+                      {isBreakingDown ? "Breaking down..." : "Break down"}
+                    </DropdownMenuItem>
+                  )}
+                  {onExpand && (
+                    <DropdownMenuItem
+                      onClick={() => onExpand(task)}
+                      disabled={isExpanding}
+                    >
+                      {isExpanding ? (
+                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                      ) : (
+                        <ChevronDown className="h-3 w-3 mr-2" />
+                      )}
+                      {isExpanding ? "Expanding..." : "Expand into Subtasks"}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
                     <Trash2 className="h-3 w-3 mr-2" />
                     Delete
@@ -84,6 +140,7 @@ export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, isDra
           </div>
         </CardContent>
       </Card>
+      </div>
 
       <EditTaskDialog
         task={task}

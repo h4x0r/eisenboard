@@ -20,6 +20,10 @@ export function useTasks() {
           updatedAt: new Date(task.updatedAt),
           lane: task.lane || task.quadrant || "neither",
           status: task.status || "todo",
+          parentId: task.parentId || undefined,
+          isExpanded: task.isExpanded || false,
+          priority: task.priority || undefined,
+          tags: task.tags || undefined,
         }))
         setTasks(parsedTasks)
       } else {

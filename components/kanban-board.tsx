@@ -67,9 +67,13 @@ interface KanbanBoardProps {
   onTaskAdd: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
   onTaskDelete: (taskId: string) => void
   onTaskEdit: (taskId: string, updates: Partial<Task>) => void
+  onTaskExpand?: (task: Task) => void
+  expandingTaskId?: string | null
+  onTaskBreakdown?: (task: Task) => void
+  breakingDownTaskId?: string | null
 }
 
-export function KanbanBoard({ tasks, onTaskMove, onTaskAdd, onTaskDelete, onTaskEdit }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, onTaskMove, onTaskAdd, onTaskDelete, onTaskEdit, onTaskExpand, expandingTaskId, onTaskBreakdown, breakingDownTaskId }: KanbanBoardProps) {
   const [addTaskLane, setAddTaskLane] = useState<Task["lane"] | null>(null)
   const [addTaskStatus, setAddTaskStatus] = useState<Task["status"]>("todo")
   const [showDoneColumns, setShowDoneColumns] = useState(true)
@@ -80,7 +84,36 @@ export function KanbanBoard({ tasks, onTaskMove, onTaskAdd, onTaskDelete, onTask
     useDragAndDrop()
 
   const getTasksForLaneAndStatus = (laneId: Task["lane"], statusId: Task["status"]) => {
-    return tasks.filter((task) => task.lane === laneId && task.status === statusId)
+    // Get all root tasks (tasks without parentId) and expanded parent tasks' subtasks
+    const rootTasks = tasks.filter((task) => !task.parentId && task.lane === laneId && task.status === statusId)
+    const organizedTasks: Task[] = []
+
+    rootTasks.forEach((rootTask) => {
+      organizedTasks.push(rootTask)
+
+      // If the task is expanded, add its subtasks right after it
+      if (rootTask.isExpanded) {
+        const subtasks = tasks.filter((task) =>
+          task.parentId === rootTask.id &&
+          task.lane === laneId &&
+          task.status === statusId
+        )
+        organizedTasks.push(...subtasks)
+      }
+    })
+
+    return organizedTasks
+  }
+
+  const hasSubtasks = (taskId: string) => {
+    return tasks.some((task) => task.parentId === taskId)
+  }
+
+  const toggleTaskExpanded = (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (task) {
+      onTaskEdit(taskId, { isExpanded: !task.isExpanded })
+    }
   }
 
   const toggleLaneCollapse = (laneId: string) => {
@@ -231,7 +264,14 @@ export function KanbanBoard({ tasks, onTaskMove, onTaskAdd, onTaskDelete, onTask
                                       onDragEnd={handleDragEnd}
                                       onDelete={() => onTaskDelete(task.id)}
                                       onEdit={(updates) => onTaskEdit(task.id, updates)}
+                                      onExpand={onTaskExpand}
+                                      isExpanding={expandingTaskId === task.id}
+                                      onBreakdown={onTaskBreakdown}
+                                      isBreakingDown={breakingDownTaskId === task.id}
                                       isDragging={draggedTask?.id === task.id}
+                                      isSubtask={!!task.parentId}
+                                      hasSubtasks={hasSubtasks(task.id)}
+                                      onToggleExpand={() => toggleTaskExpanded(task.id)}
                                     />
                                   ))}
                                 </div>

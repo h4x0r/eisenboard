@@ -1,6 +1,11 @@
 {
-  "name": "my-v0-project",
+  "name": "eisenboard",
   "version": "0.1.0",
+  "description": "Eisenhower Matrix Kanban board with AI task expansion",
+  "keywords": ["productivity", "kanban", "eisenhower-matrix", "task-management"],
+  "author": "Albert Hui <albert@securityronin.com>",
+  "repository": "https://github.com/h4x0r/eisenboard",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "build": "next build",

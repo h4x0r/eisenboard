@@ -1,5 +1,7 @@
 "use client"
 
+import { useState } from "react"
+
 import { KanbanBoard } from "../components/kanban-board"
 import { TaskStats } from "../components/task-stats"
 import { TaskActions } from "../components/task-actions"
@@ -7,6 +9,9 @@ import { ThemeSwitcher } from "../components/theme-switcher"
 import { ThemeProvider } from "../components/theme-provider"
 import { QuickAddInput } from "../components/quick-add-input"
 import { useTasks } from "../hooks/use-tasks"
+import { useTaskExpansion } from "../hooks/use-task-expansion"
+import { breakdownTask } from "../lib/task-breakdown"
+import { toast } from "sonner"
 import type { Task } from "../types/task"
 import { EisenboardIcon } from "../components/eisenboard-icon"
 import { Button } from "../components/ui/button"
@@ -14,6 +19,8 @@ import { Database } from "lucide-react"
 
 export default function HomePage() {
   const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, getTaskStats } = useTasks()
+  const { expandTask, isExpanding, expandError, clearError } = useTaskExpansion()
+  const [breakingDownTaskId, setBreakingDownTaskId] = useState<string | null>(null)
 
   console.log("[v0] NODE_ENV:", process.env.NODE_ENV)
   console.log("[v0] VERCEL_ENV:", process.env.NEXT_PUBLIC_VERCEL_ENV)
@@ -114,7 +121,7 @@ export default function HomePage() {
 
   const handleImport = (importedTasks: Task[]) => {
     const validTasks = importedTasks
-      .filter((task) => task.id && task.title && (task.lane || task.quadrant))
+      .filter((task) => task.id && task.title && (task.lane || (task as any).quadrant))
       .map((task) => ({
         ...task,
         // Handle migration from old quadrant format to new lane/status format
@@ -131,6 +138,60 @@ export default function HomePage() {
       alert(`Successfully imported ${validTasks.length} tasks`)
     } else {
       alert("No valid tasks found in the imported file")
+    }
+  }
+
+  const handleTaskExpand = async (task: Task) => {
+    const success = await expandTask(task, addTask)
+    if (success) {
+      // Optionally show a success message
+      console.log(`Task "${task.title}" expanded successfully`)
+    } else if (expandError) {
+      // Show error to user
+      alert(`Failed to expand task: ${expandError}`)
+    }
+  }
+
+  const handleTaskBreakdown = async (task: Task) => {
+    try {
+      setBreakingDownTaskId(task.id)
+      console.log(`[HomePage] Starting breakdown for task: ${task.title}`)
+
+      const breakdown = await breakdownTask(task.title, task.description, task.lane)
+
+      console.log(`[HomePage] Breakdown complete, creating ${breakdown.subtasks.length} subtasks`)
+
+      // Create subtasks from the breakdown
+      breakdown.subtasks.forEach((subtask) => {
+        addTask({
+          title: subtask.title,
+          description: `${subtask.reasoning}`,
+          lane: subtask.lane,
+          status: "todo",
+          priority: task.priority,
+          tags: [...(task.tags || []), "subtask"],
+          parentId: task.id
+        })
+      })
+
+      // Mark the parent task as expanded
+      updateTask(task.id, { isExpanded: true })
+
+      // Show success message
+      toast.success(`Created ${breakdown.subtasks.length} subtasks`, {
+        description: breakdown.overall_approach,
+        duration: 5000
+      })
+
+      console.log(`[HomePage] Successfully created subtasks for: ${task.title}`)
+    } catch (error) {
+      console.error(`[HomePage] Failed to breakdown task:`, error)
+      toast.error("Failed to break down task", {
+        description: error instanceof Error ? error.message : "An error occurred",
+        duration: 3000
+      })
+    } finally {
+      setBreakingDownTaskId(null)
     }
   }
 
@@ -186,6 +247,10 @@ export default function HomePage() {
             onTaskAdd={addTask}
             onTaskDelete={deleteTask}
             onTaskEdit={updateTask}
+            onTaskExpand={handleTaskExpand}
+            expandingTaskId={isExpanding}
+            onTaskBreakdown={handleTaskBreakdown}
+            breakingDownTaskId={breakingDownTaskId}
           />
         </main>
       </div>
