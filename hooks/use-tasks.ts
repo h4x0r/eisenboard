@@ -108,6 +108,18 @@ export function useTasks() {
     localStorage.removeItem(STORAGE_KEY)
   }, [])
 
+  const setSampleTasks = useCallback((sampleTasksData: Omit<Task, "id" | "createdAt" | "updatedAt">[]) => {
+    const sampleTasks: Task[] = sampleTasksData.map((taskData) => ({
+      ...taskData,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }))
+
+    setTasks(sampleTasks)
+    saveTasks(sampleTasks)
+  }, [saveTasks])
+
   const getTasksByLane = useCallback(
     (lane: Task["lane"]) => {
       return tasks.filter((task) => task.lane === lane)
@@ -140,6 +152,7 @@ export function useTasks() {
     deleteTask,
     moveTask,
     clearAllTasks,
+    setSampleTasks,
     getTasksByLane,
     getTasksByLaneAndStatus,
     getTaskStats,

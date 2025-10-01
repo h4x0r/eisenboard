@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 import { KanbanBoard } from "../components/kanban-board"
 import { TaskStats } from "../components/task-stats"
@@ -20,10 +20,11 @@ import { AILoadingIndicator } from "../components/ai-loading-indicator"
 import { VersionFooter } from "../components/version-footer"
 
 export default function HomePage() {
-  const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, getTaskStats } = useTasks()
+  const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, setSampleTasks, getTaskStats } = useTasks()
   const { expandTask, isExpanding, expandError, clearError } = useTaskExpansion()
   const [breakingDownTaskId, setBreakingDownTaskId] = useState<string | null>(null)
   const [isCategorizingTask, setIsCategorizingTask] = useState(false)
+
 
   // Enhanced move handler that handles parent-child relationships
   const handleTaskMove = (taskId: string, newLane: Task["lane"], newStatus: Task["status"], targetTaskId?: string) => {
@@ -192,9 +193,8 @@ export default function HomePage() {
       },
     ]
 
-    // Clear existing tasks and add sample data
-    clearAllTasks()
-    sampleTasks.forEach((task) => addTask(task))
+    // Set sample data atomically
+    setSampleTasks(sampleTasks)
   }
 
   const handleExport = () => {
