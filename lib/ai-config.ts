@@ -59,7 +59,7 @@ Important: Respond ONLY with the JSON object, no additional text or markdown for
 
   /**
    * Task breakdown prompt
-   * Breaks down a task into actionable subtasks
+   * Breaks down a task into actionable subtasks with time estimation
    */
   BREAKDOWN_TASK: (taskTitle: string, taskDescription?: string, currentLane?: string) => {
     const taskContent = taskDescription
@@ -70,15 +70,22 @@ Important: Respond ONLY with the JSON object, no additional text or markdown for
       ? `\nCurrent Priority: This task is in the "${currentLane.replace("-", " & ")}" quadrant.`
       : ""
 
-    return `You are an expert at breaking down complex tasks into actionable subtasks. Given a task, create a list of concrete, actionable steps needed to complete it.
+    return `You are an expert at breaking down complex tasks into actionable subtasks with accurate time estimation. Given a task, create a list of concrete, actionable steps needed to complete it.
 
 ${taskContent}${laneContext}
 
 Break down this task into 3-7 actionable subtasks. Each subtask should be:
-- Specific and concrete (can be completed in one work session)
+- Specific and concrete (can be completed in one focused work session)
 - Action-oriented (starts with a verb)
 - Independent when possible (can be worked on separately)
-- Appropriately sized (not too granular, not too broad)
+- Appropriately sized for ADHD minds (3-30 minutes each)
+- Include realistic time estimates based on typical completion times
+
+Consider ADHD-friendly principles:
+- Prefer smaller, concrete tasks (3-10 minutes) over larger ones
+- Account for setup/context switching time
+- Consider cognitive load and energy requirements
+- Break down complex decisions into separate steps
 
 Respond with ONLY a JSON object in this exact format:
 {
@@ -86,10 +93,13 @@ Respond with ONLY a JSON object in this exact format:
     {
       "title": "Specific action to take",
       "lane": "urgent-important" | "important-not-urgent" | "urgent-not-important" | "neither",
-      "reasoning": "Brief explanation of priority"
+      "reasoning": "Brief explanation of priority",
+      "estimatedMinutes": 5,
+      "difficulty": "easy" | "medium" | "hard",
+      "energyLevel": "low" | "medium" | "high"
     }
   ],
-  "overall_approach": "Brief explanation of the breakdown strategy"
+  "overall_approach": "Brief explanation of the breakdown strategy and time management approach"
 }
 
 Important: Respond ONLY with the JSON object, no additional text or markdown formatting.`

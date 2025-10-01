@@ -18,13 +18,31 @@ import { Button } from "../components/ui/button"
 import { Database } from "lucide-react"
 import { AILoadingIndicator } from "../components/ai-loading-indicator"
 import { VersionFooter } from "../components/version-footer"
+import { OverwhelmAlerts, OverwhelmQuickActions } from "../components/overwhelm-alerts"
+import { OverwhelmDetector, type OverwhelmAlert } from "../lib/overwhelm-detector"
 
 export default function HomePage() {
   const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, setSampleTasks, getTaskStats } = useTasks()
   const { expandTask, isExpanding, expandError, clearError } = useTaskExpansion()
   const [breakingDownTaskId, setBreakingDownTaskId] = useState<string | null>(null)
   const [isCategorizingTask, setIsCategorizingTask] = useState(false)
+  const [overwhelmAlerts, setOverwhelmAlerts] = useState<OverwhelmAlert[]>([])
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set())
 
+  // Detect overwhelm patterns when tasks change
+  useEffect(() => {
+    if (tasks.length > 0) {
+      const alerts = OverwhelmDetector.analyzeOverwhelm(tasks)
+      // Filter out dismissed alerts (simple dismissal by type for now)
+      const filteredAlerts = alerts.filter(alert => {
+        const alertKey = `${alert.type}-${alert.severity}`
+        return !dismissedAlerts.has(alertKey)
+      })
+      setOverwhelmAlerts(filteredAlerts)
+    } else {
+      setOverwhelmAlerts([])
+    }
+  }, [tasks, dismissedAlerts])
 
   // Enhanced move handler that handles parent-child relationships
   const handleTaskMove = (taskId: string, newLane: Task["lane"], newStatus: Task["status"], targetTaskId?: string) => {
@@ -259,7 +277,10 @@ export default function HomePage() {
           status: "todo",
           priority: task.priority,
           tags: [...(task.tags || []), "subtask"],
-          parentId: task.id
+          parentId: task.id,
+          estimatedMinutes: subtask.estimatedMinutes,
+          difficulty: subtask.difficulty,
+          energyLevel: subtask.energyLevel
         })
       })
 
@@ -282,6 +303,64 @@ export default function HomePage() {
     } finally {
       setBreakingDownTaskId(null)
     }
+  }
+
+  // Handle dismissing overwhelm alerts
+  const handleDismissAlert = (alert: OverwhelmAlert) => {
+    const alertKey = `${alert.type}-${alert.severity}`
+    setDismissedAlerts(prev => new Set([...prev, alertKey]))
+  }
+
+  // Handle quick actions from overwhelm alerts
+  const handleQuickAction = (action: string, alert: OverwhelmAlert) => {
+    console.log(`[Overwhelm] Quick action: ${action} for alert type: ${alert.type}`)
+
+    switch (action) {
+      case "move_to_schedule":
+        // Move some urgent tasks to schedule quadrant
+        const urgentTasks = tasks.filter(t => t.lane === "urgent-important" && t.status === "todo").slice(0, 3)
+        urgentTasks.forEach(task => {
+          updateTask(task.id, { lane: "important-not-urgent" })
+        })
+        toast.success(`Moved ${urgentTasks.length} tasks to Schedule quadrant`)
+        break
+
+      case "prioritize_top_3":
+        // Highlight top 3 urgent tasks (could be implemented with special status)
+        toast.info("Focus on your top 3 urgent tasks. Consider deferring others.")
+        break
+
+      case "breakdown_tasks":
+        // Find first large task and suggest breakdown
+        const largeTask = tasks.find(t =>
+          !t.parentId &&
+          t.status === "todo" &&
+          (!t.estimatedMinutes || t.estimatedMinutes > 30)
+        )
+        if (largeTask) {
+          toast.info(`Consider breaking down: "${largeTask.title}"`)
+        }
+        break
+
+      case "defer_tasks":
+        // Move some non-urgent tasks to eliminate or schedule
+        const nonUrgentTasks = tasks.filter(t =>
+          t.lane === "urgent-not-important" && t.status === "todo"
+        ).slice(0, 2)
+        nonUrgentTasks.forEach(task => {
+          updateTask(task.id, { lane: "neither" })
+        })
+        if (nonUrgentTasks.length > 0) {
+          toast.success(`Deferred ${nonUrgentTasks.length} low-priority tasks`)
+        }
+        break
+
+      default:
+        toast.info(`Quick action: ${action}`)
+    }
+
+    // Dismiss the alert after taking action
+    handleDismissAlert(alert)
   }
 
   if (isLoading) {
@@ -340,6 +419,22 @@ export default function HomePage() {
       <div className="h-screen pt-20 overflow-y-auto bg-background">
         <main className="container mx-auto px-6 pb-12">
           <TaskStats stats={getTaskStats()} />
+
+          {/* Overwhelm Detection Alerts */}
+          {overwhelmAlerts.length > 0 && (
+            <div className="mb-6">
+              <OverwhelmAlerts
+                alerts={overwhelmAlerts}
+                onDismiss={handleDismissAlert}
+              />
+              <div className="mt-3">
+                <OverwhelmQuickActions
+                  alerts={overwhelmAlerts}
+                  onQuickAction={handleQuickAction}
+                />
+              </div>
+            </div>
+          )}
 
           <KanbanBoard
             tasks={tasks}

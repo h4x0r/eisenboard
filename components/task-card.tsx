@@ -118,6 +118,41 @@ export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, onExp
               {task.description && (
                 <p className="text-xs text-muted-foreground text-pretty line-clamp-2">{task.description}</p>
               )}
+
+              {/* Time estimation and difficulty indicators */}
+              {(task.estimatedMinutes || task.difficulty || task.energyLevel) && (
+                <div className="flex items-center gap-1 mt-2 flex-wrap">
+                  {task.estimatedMinutes && (
+                    <Badge variant="secondary" className="text-xs px-1.5 py-0">
+                      {task.estimatedMinutes}min
+                    </Badge>
+                  )}
+                  {task.difficulty && (
+                    <Badge
+                      variant="outline"
+                      className={`text-xs px-1.5 py-0 ${
+                        task.difficulty === 'easy' ? 'text-green-600 border-green-300' :
+                        task.difficulty === 'hard' ? 'text-red-600 border-red-300' :
+                        'text-yellow-600 border-yellow-300'
+                      }`}
+                    >
+                      {task.difficulty}
+                    </Badge>
+                  )}
+                  {task.energyLevel && (
+                    <Badge
+                      variant="outline"
+                      className={`text-xs px-1.5 py-0 ${
+                        task.energyLevel === 'high' ? 'text-orange-600 border-orange-300' :
+                        task.energyLevel === 'low' ? 'text-blue-600 border-blue-300' :
+                        'text-gray-600 border-gray-300'
+                      }`}
+                    >
+                      {task.energyLevel} energy
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
 
             <div

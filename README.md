@@ -435,6 +435,6 @@ This tool exists thanks to:
 
 **Ready to transform your ADHD task overwhelm into organized productivity?**
 
-🚀 **[Try EisenBoard Live](https://eisenboard.vercel.app)** 🚀
+🚀 **[Try EisenBoard Live](https://eisenboard.app)** 🚀
 
 </div>

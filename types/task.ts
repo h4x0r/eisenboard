@@ -10,6 +10,13 @@ export interface Task {
   isExpanded?: boolean
   priority?: "high" | "medium" | "low"
   tags?: string[]
+  // Enhanced task breakdown with time estimation
+  estimatedMinutes?: number
+  actualMinutes?: number
+  startedAt?: Date
+  completedAt?: Date
+  difficulty?: "easy" | "medium" | "hard"
+  energyLevel?: "low" | "medium" | "high"
 }
 
 export interface Lane {

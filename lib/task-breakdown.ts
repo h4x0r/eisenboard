@@ -7,6 +7,9 @@ interface SubtaskItem {
   title: string
   lane: Task["lane"]
   reasoning: string
+  estimatedMinutes: number
+  difficulty: "easy" | "medium" | "hard"
+  energyLevel: "low" | "medium" | "high"
 }
 
 interface BreakdownResult {
@@ -81,10 +84,26 @@ export async function breakdownTask(
       }
 
       // Validate each subtask
+      const validDifficulties = ["easy", "medium", "hard"]
+      const validEnergyLevels = ["low", "medium", "high"]
+
       for (const subtask of parsed.subtasks) {
         if (!subtask.title || !subtask.lane || !validLanes.includes(subtask.lane)) {
           console.error("[Task Breakdown] Invalid subtask:", subtask)
           throw new Error("Invalid subtask in AI response")
+        }
+
+        // Validate new fields, but provide defaults if missing for backward compatibility
+        if (typeof subtask.estimatedMinutes !== 'number') {
+          subtask.estimatedMinutes = 10 // Default to 10 minutes
+        }
+
+        if (!subtask.difficulty || !validDifficulties.includes(subtask.difficulty)) {
+          subtask.difficulty = "medium" // Default difficulty
+        }
+
+        if (!subtask.energyLevel || !validEnergyLevels.includes(subtask.energyLevel)) {
+          subtask.energyLevel = "medium" // Default energy level
         }
       }
 
