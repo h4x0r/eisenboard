@@ -115,6 +115,7 @@ export function useTasks() {
       id: crypto.randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
+      parentId: taskData.parentId || null, // Ensure parentId is null for top-level tasks
     }))
 
     setTasks(sampleTasks)

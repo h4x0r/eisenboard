@@ -352,10 +352,10 @@ export default function HomePage() {
             onTaskBreakdown={handleTaskBreakdown}
             breakingDownTaskId={breakingDownTaskId}
           />
+
+          <VersionFooter />
         </main>
       </div>
-
-      <VersionFooter />
     </ThemeProvider>
   )
 }

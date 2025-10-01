@@ -68,9 +68,9 @@ export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, onExp
 
   return (
     <>
-      <div className={`relative`} style={{ marginLeft: `${indentSize}px` }}>
+      <div className={`relative transition-all duration-200`} style={{ marginLeft: `${indentSize}px` }}>
         {nestingLevel > 0 && (
-          <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `-${Math.min(nestingLevel * 24, 24)}px` }}>
+          <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `-24px` }}>
             <CornerDownRight className="h-4 w-4 text-muted-foreground/50" />
           </div>
         )}
@@ -82,7 +82,7 @@ export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, onExp
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={`cursor-move transition-all duration-200 hover:shadow-md group select-none ${
-            isDragging ? "opacity-50 rotate-2 scale-105 shadow-xl ring-2 ring-primary/50" : "hover:scale-[1.02]"
+            isDragging ? "opacity-50 scale-105 shadow-xl ring-2 ring-primary/50" : "hover:scale-[1.02]"
           } ${nestingLevel > 0 ? `border-dashed` : ""} ${
             nestingLevel > 0 ? `opacity-${Math.max(95 - nestingLevel * 5, 85)}` : ""
           } ${

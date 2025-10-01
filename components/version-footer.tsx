@@ -20,9 +20,9 @@ export function VersionFooter() {
   }, [])
 
   return (
-    <footer className="fixed bottom-0 left-0 right-0 z-10 pointer-events-none">
-      <div className="flex justify-center p-2">
-        <div className="text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors pointer-events-auto">
+    <footer className="mt-8 py-4 border-t border-border/20">
+      <div className="flex justify-center">
+        <div className="text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors">
           <span className="select-none">
             v{packageInfo.version}{deployTime && ` • ${deployTime}`}
             {commitHash && (
