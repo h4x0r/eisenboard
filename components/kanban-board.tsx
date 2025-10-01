@@ -80,6 +80,7 @@ export function KanbanBoard({ tasks, onTaskMove, onTaskAdd, onTaskDelete, onTask
   const [collapsedLanes, setCollapsedLanes] = useState<Set<string>>(new Set())
   const [collapsedDoneColumns, setCollapsedDoneColumns] = useState<Set<string>>(new Set())
 
+
   const { draggedTask, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop()
 

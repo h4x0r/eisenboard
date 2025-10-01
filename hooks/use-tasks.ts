@@ -20,7 +20,7 @@ export function useTasks() {
           updatedAt: new Date(task.updatedAt),
           lane: task.lane || task.quadrant || "neither",
           status: task.status || "todo",
-          parentId: task.parentId || undefined,
+          parentId: task.parentId || null, // Ensure parentId is null for top-level tasks
           isExpanded: task.isExpanded || false,
           priority: task.priority || undefined,
           tags: task.tags || undefined,
@@ -55,6 +55,7 @@ export function useTasks() {
         id: crypto.randomUUID(),
         createdAt: new Date(),
         updatedAt: new Date(),
+        parentId: taskData.parentId || null, // Ensure parentId is null for top-level tasks
       }
 
       setTasks((prev) => {
