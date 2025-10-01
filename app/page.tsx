@@ -17,6 +17,7 @@ import { EisenboardIcon } from "../components/eisenboard-icon"
 import { Button } from "../components/ui/button"
 import { Database } from "lucide-react"
 import { AILoadingIndicator } from "../components/ai-loading-indicator"
+import { VersionFooter } from "../components/version-footer"
 
 export default function HomePage() {
   const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, getTaskStats } = useTasks()
@@ -337,7 +338,7 @@ export default function HomePage() {
       </header>
 
       <div className="h-screen pt-20 overflow-y-auto bg-background">
-        <main className="container mx-auto px-6 pb-6">
+        <main className="container mx-auto px-6 pb-12">
           <TaskStats stats={getTaskStats()} />
 
           <KanbanBoard
@@ -353,6 +354,8 @@ export default function HomePage() {
           />
         </main>
       </div>
+
+      <VersionFooter />
     </ThemeProvider>
   )
 }

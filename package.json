@@ -1,6 +1,6 @@
 {
   "name": "eisenboard",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Eisenhower Matrix Kanban board with AI task expansion",
   "keywords": ["productivity", "kanban", "eisenhower-matrix", "task-management"],
   "author": "Albert Hui <albert@securityronin.com>",
