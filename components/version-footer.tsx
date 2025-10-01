@@ -15,9 +15,8 @@ export function VersionFooter() {
     }
 
     // Set deploy timestamp in ISO 8601 format
-    // Use build time from env variable (set during build) or current time in dev
-    const timestamp = process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString()
-    setDeployTime(timestamp)
+    // Generate current time in dev since env variables don't update in client components
+    setDeployTime(new Date().toISOString())
   }, [])
 
   return (
@@ -25,7 +24,7 @@ export function VersionFooter() {
       <div className="flex justify-center p-2">
         <div className="text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors pointer-events-auto">
           <span className="select-none">
-            v{packageInfo.version} • {deployTime}
+            v{packageInfo.version}{deployTime && ` • ${deployTime}`}
             {commitHash && (
               <>
                 {" • "}

@@ -30,33 +30,54 @@ export function QuickAddInput({ onAddTask, onCategorizationStart, onCategorizati
 
     console.log("[QuickAddInput] Processing new task:", taskTitle)
 
-    try {
-      // Use AI to categorize the task
-      console.log("[QuickAddInput] Calling AI categorization...")
-      const categorization = await categorizeTask(taskTitle)
+    // Try AI categorization with robust fallback
+    const USE_AI = true // Re-enable AI with better error handling
 
-      console.log("[QuickAddInput] AI categorization complete:", categorization)
+    if (USE_AI) {
+      try {
+        // Use AI to categorize the task
+        console.log("[QuickAddInput] Calling AI categorization...")
+        const categorization = await categorizeTask(taskTitle)
 
-      // Add the task with AI-determined category
-      onAddTask({
-        title: taskTitle,
-        description: "",
-        lane: categorization.lane,
-        status: "todo",
-      })
+        console.log("[QuickAddInput] AI categorization complete:", categorization)
 
-      // Show toast with the reasoning
-      toast.success(`Task added to "${categorization.lane.replace("-", " & ")}" quadrant`, {
-        description: categorization.reasoning,
-        duration: 5000,
-      })
+        // Add the task with AI-determined category
+        onAddTask({
+          title: taskTitle,
+          description: "",
+          lane: categorization.lane,
+          status: "todo",
+        })
 
-      setInputValue("")
-    } catch (error) {
-      console.error("[QuickAddInput] Error during AI categorization:", error)
+        // Show toast with the reasoning
+        toast.success(`Task added to "${categorization.lane.replace("-", " & ")}" quadrant`, {
+          description: categorization.reasoning,
+          duration: 5000,
+        })
 
-      // Fallback to default category
-      console.log("[QuickAddInput] Using fallback category: important-not-urgent")
+        setInputValue("")
+      } catch (error) {
+        console.error("[QuickAddInput] Error during AI categorization:", error)
+
+        // Fallback to default category
+        console.log("[QuickAddInput] Using fallback category: important-not-urgent")
+        onAddTask({
+          title: taskTitle,
+          description: "",
+          lane: "important-not-urgent",
+          status: "todo",
+        })
+
+        toast.error("Could not categorize automatically", {
+          description: "Task added to 'Important & Not Urgent' as default",
+          duration: 3000,
+        })
+
+        setInputValue("")
+      }
+    } else {
+      // Direct task addition without AI
+      console.log("[QuickAddInput] Adding task without AI categorization")
       onAddTask({
         title: taskTitle,
         description: "",
@@ -64,17 +85,17 @@ export function QuickAddInput({ onAddTask, onCategorizationStart, onCategorizati
         status: "todo",
       })
 
-      toast.error("Could not categorize automatically", {
-        description: "Task added to 'Important & Not Urgent' as default",
+      toast.info("Task added", {
+        description: "AI categorization is currently disabled",
         duration: 3000,
       })
 
       setInputValue("")
-    } finally {
-      setIsProcessing(false)
-      onCategorizationEnd?.()
-      console.log("[QuickAddInput] Task processing complete")
     }
+
+    setIsProcessing(false)
+    onCategorizationEnd?.()
+    console.log("[QuickAddInput] Task processing complete")
   }
 
   return (
