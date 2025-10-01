@@ -12,9 +12,11 @@ import { toast } from "sonner"
 
 interface QuickAddInputProps {
   onAddTask: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
+  onCategorizationStart?: () => void
+  onCategorizationEnd?: () => void
 }
 
-export function QuickAddInput({ onAddTask }: QuickAddInputProps) {
+export function QuickAddInput({ onAddTask, onCategorizationStart, onCategorizationEnd }: QuickAddInputProps) {
   const [inputValue, setInputValue] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -24,6 +26,7 @@ export function QuickAddInput({ onAddTask }: QuickAddInputProps) {
 
     const taskTitle = inputValue.trim()
     setIsProcessing(true)
+    onCategorizationStart?.()
 
     console.log("[QuickAddInput] Processing new task:", taskTitle)
 
@@ -69,6 +72,7 @@ export function QuickAddInput({ onAddTask }: QuickAddInputProps) {
       setInputValue("")
     } finally {
       setIsProcessing(false)
+      onCategorizationEnd?.()
       console.log("[QuickAddInput] Task processing complete")
     }
   }

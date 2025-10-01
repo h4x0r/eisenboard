@@ -63,7 +63,7 @@ const getLaneIcon = (laneId: string) => {
 
 interface KanbanBoardProps {
   tasks: Task[]
-  onTaskMove: (taskId: string, newLane: Task["lane"], newStatus: Task["status"]) => void
+  onTaskMove: (taskId: string, newLane: Task["lane"], newStatus: Task["status"], targetTaskId?: string) => void
   onTaskAdd: (task: Omit<Task, "id" | "createdAt" | "updatedAt">) => void
   onTaskDelete: (taskId: string) => void
   onTaskEdit: (taskId: string, updates: Partial<Task>) => void
@@ -83,26 +83,35 @@ export function KanbanBoard({ tasks, onTaskMove, onTaskAdd, onTaskDelete, onTask
   const { draggedTask, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop()
 
-  const getTasksForLaneAndStatus = (laneId: Task["lane"], statusId: Task["status"]) => {
-    // Get all root tasks (tasks without parentId) and expanded parent tasks' subtasks
-    const rootTasks = tasks.filter((task) => !task.parentId && task.lane === laneId && task.status === statusId)
-    const organizedTasks: Task[] = []
+  // Recursively get tasks and their children with nesting levels
+  const getTasksWithNesting = (
+    parentId: string | null,
+    laneId: Task["lane"],
+    statusId: Task["status"],
+    level: number = 0
+  ): Array<{ task: Task; level: number }> => {
+    const currentLevelTasks = tasks.filter((task) =>
+      task.parentId === parentId &&
+      task.lane === laneId &&
+      task.status === statusId
+    )
 
-    rootTasks.forEach((rootTask) => {
-      organizedTasks.push(rootTask)
+    const result: Array<{ task: Task; level: number }> = []
 
-      // If the task is expanded, add its subtasks right after it
-      if (rootTask.isExpanded) {
-        const subtasks = tasks.filter((task) =>
-          task.parentId === rootTask.id &&
-          task.lane === laneId &&
-          task.status === statusId
-        )
-        organizedTasks.push(...subtasks)
+    currentLevelTasks.forEach((task) => {
+      result.push({ task, level })
+
+      if (task.isExpanded) {
+        const children = getTasksWithNesting(task.id, laneId, statusId, level + 1)
+        result.push(...children)
       }
     })
 
-    return organizedTasks
+    return result
+  }
+
+  const getTasksForLaneAndStatus = (laneId: Task["lane"], statusId: Task["status"]) => {
+    return getTasksWithNesting(null, laneId, statusId, 0)
   }
 
   const hasSubtasks = (taskId: string) => {
@@ -256,7 +265,7 @@ export function KanbanBoard({ tasks, onTaskMove, onTaskAdd, onTaskDelete, onTask
                                 </div>
 
                                 <div className="space-y-2 mb-3">
-                                  {columnTasks.map((task) => (
+                                  {columnTasks.map(({ task, level }) => (
                                     <TaskCard
                                       key={task.id}
                                       task={task}
@@ -272,6 +281,8 @@ export function KanbanBoard({ tasks, onTaskMove, onTaskAdd, onTaskDelete, onTask
                                       isSubtask={!!task.parentId}
                                       hasSubtasks={hasSubtasks(task.id)}
                                       onToggleExpand={() => toggleTaskExpanded(task.id)}
+                                      onDrop={(droppedTaskId) => onTaskMove(droppedTaskId, task.lane, task.status, task.id)}
+                                      nestingLevel={level}
                                     />
                                   ))}
                                 </div>

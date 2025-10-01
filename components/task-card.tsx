@@ -25,10 +25,13 @@ interface TaskCardProps {
   isSubtask?: boolean
   hasSubtasks?: boolean
   onToggleExpand?: () => void
+  onDrop?: (droppedTaskId: string) => void
+  nestingLevel?: number
 }
 
-export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, onExpand, isExpanding, onBreakdown, isBreakingDown, isDragging, isSubtask, hasSubtasks, onToggleExpand }: TaskCardProps) {
+export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, onExpand, isExpanding, onBreakdown, isBreakingDown, isDragging, isSubtask, hasSubtasks, onToggleExpand, onDrop, nestingLevel = 0 }: TaskCardProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = "move"
@@ -36,21 +39,55 @@ export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, onExp
     onDragStart()
   }
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (onDrop) { // Allow dropping on any task
+      e.dataTransfer.dropEffect = "move"
+      setIsDragOver(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const droppedTaskId = e.dataTransfer.getData("text/plain")
+    if (droppedTaskId && droppedTaskId !== task.id && onDrop) {
+      onDrop(droppedTaskId)
+    }
+    setIsDragOver(false)
+  }
+
+  const indentSize = nestingLevel * 24 // 24px per nesting level (6 * 4 in tailwind)
+
   return (
     <>
-      <div className={`relative ${isSubtask ? "ml-6" : ""}`}>
-        {isSubtask && (
-          <div className="absolute -left-6 top-0 bottom-0 flex items-center">
+      <div className={`relative`} style={{ marginLeft: `${indentSize}px` }}>
+        {nestingLevel > 0 && (
+          <div className="absolute top-0 bottom-0 flex items-center" style={{ left: `-${Math.min(nestingLevel * 24, 24)}px` }}>
             <CornerDownRight className="h-4 w-4 text-muted-foreground/50" />
           </div>
         )}
         <Card
-          draggable={!isSubtask}
-          onDragStart={!isSubtask ? handleDragStart : undefined}
-          onDragEnd={!isSubtask ? onDragEnd : undefined}
-          className={`${!isSubtask ? "cursor-move" : ""} transition-all duration-200 hover:shadow-md group select-none ${
+          draggable
+          onDragStart={handleDragStart}
+          onDragEnd={onDragEnd}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`cursor-move transition-all duration-200 hover:shadow-md group select-none ${
             isDragging ? "opacity-50 rotate-2 scale-105 shadow-xl ring-2 ring-primary/50" : "hover:scale-[1.02]"
-          } ${isSubtask ? "border-dashed opacity-95" : ""}`}
+          } ${nestingLevel > 0 ? `border-dashed` : ""} ${
+            nestingLevel > 0 ? `opacity-${Math.max(95 - nestingLevel * 5, 85)}` : ""
+          } ${
+            isDragOver ? "ring-2 ring-primary bg-primary/5" : ""
+          }`}
           style={{
             transformOrigin: "center",
           }}
@@ -108,20 +145,7 @@ export function TaskCard({ task, onDragStart, onDragEnd, onDelete, onEdit, onExp
                       ) : (
                         <GitBranch className="h-3 w-3 mr-2" />
                       )}
-                      {isBreakingDown ? "Breaking down..." : "Break down"}
-                    </DropdownMenuItem>
-                  )}
-                  {onExpand && (
-                    <DropdownMenuItem
-                      onClick={() => onExpand(task)}
-                      disabled={isExpanding}
-                    >
-                      {isExpanding ? (
-                        <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                      ) : (
-                        <ChevronDown className="h-3 w-3 mr-2" />
-                      )}
-                      {isExpanding ? "Expanding..." : "Expand into Subtasks"}
+                      {isBreakingDown ? "Breaking down..." : "Break Down into Subtasks"}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">

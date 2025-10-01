@@ -16,11 +16,99 @@ import type { Task } from "../types/task"
 import { EisenboardIcon } from "../components/eisenboard-icon"
 import { Button } from "../components/ui/button"
 import { Database } from "lucide-react"
+import { AILoadingIndicator } from "../components/ai-loading-indicator"
 
 export default function HomePage() {
   const { tasks, isLoading, addTask, updateTask, deleteTask, moveTask, clearAllTasks, getTaskStats } = useTasks()
   const { expandTask, isExpanding, expandError, clearError } = useTaskExpansion()
   const [breakingDownTaskId, setBreakingDownTaskId] = useState<string | null>(null)
+  const [isCategorizingTask, setIsCategorizingTask] = useState(false)
+
+  // Enhanced move handler that handles parent-child relationships
+  const handleTaskMove = (taskId: string, newLane: Task["lane"], newStatus: Task["status"], targetTaskId?: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+
+    // If dropping onto another task, make it a subtask
+    if (targetTaskId && targetTaskId !== taskId) {
+      const targetTask = tasks.find(t => t.id === targetTaskId)
+
+      // Prevent circular dependencies - don't allow dropping a parent onto its descendant
+      const isDescendant = (childId: string, ancestorId: string): boolean => {
+        const child = tasks.find(t => t.id === childId)
+        if (!child || !child.parentId) return false
+        if (child.parentId === ancestorId) return true
+        return isDescendant(child.parentId, ancestorId)
+      }
+
+      if (targetTask && !isDescendant(targetTaskId, taskId)) {
+        // Move all descendants with the task
+        const getAllDescendants = (parentId: string): string[] => {
+          const children = tasks.filter(t => t.parentId === parentId)
+          const descendants: string[] = []
+          children.forEach(child => {
+            descendants.push(child.id)
+            descendants.push(...getAllDescendants(child.id))
+          })
+          return descendants
+        }
+
+        const descendants = getAllDescendants(taskId)
+
+        updateTask(taskId, {
+          parentId: targetTaskId,
+          lane: targetTask.lane,
+          status: targetTask.status,
+          isExpanded: false
+        })
+
+        // Update all descendants to the same lane/status
+        descendants.forEach(descId => {
+          const desc = tasks.find(t => t.id === descId)
+          if (desc) {
+            updateTask(descId, {
+              lane: targetTask.lane,
+              status: targetTask.status
+            })
+          }
+        })
+
+        // Expand the parent to show the new subtask
+        updateTask(targetTaskId, { isExpanded: true })
+        return
+      }
+    }
+
+    // If moving a subtask to a different column, make it a top-level task
+    if (task.parentId) {
+      updateTask(taskId, {
+        parentId: undefined,
+        lane: newLane,
+        status: newStatus
+      })
+    } else {
+      // If moving a parent task, move all its descendants with it recursively
+      const getAllDescendants = (parentId: string): string[] => {
+        const children = tasks.filter(t => t.parentId === parentId)
+        const descendants: string[] = []
+        children.forEach(child => {
+          descendants.push(child.id)
+          descendants.push(...getAllDescendants(child.id))
+        })
+        return descendants
+      }
+
+      const descendants = getAllDescendants(taskId)
+
+      // Move the parent
+      moveTask(taskId, newLane, newStatus)
+
+      // Move all descendants to the same lane/status
+      descendants.forEach(descId => {
+        moveTask(descId, newLane, newStatus)
+      })
+    }
+  }
 
   console.log("[v0] NODE_ENV:", process.env.NODE_ENV)
   console.log("[v0] VERCEL_ENV:", process.env.NEXT_PUBLIC_VERCEL_ENV)
@@ -210,6 +298,13 @@ export default function HomePage() {
 
   return (
     <ThemeProvider>
+      {breakingDownTaskId && (
+        <AILoadingIndicator message="Breaking down task into subtasks..." />
+      )}
+      {isCategorizingTask && (
+        <AILoadingIndicator message="AI is categorizing your task..." />
+      )}
+
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between gap-4">
@@ -218,7 +313,11 @@ export default function HomePage() {
               <h1 className="text-xl font-semibold">EisenBoard</h1>
             </div>
             <div className="flex-1 max-w-md">
-              <QuickAddInput onAddTask={addTask} />
+              <QuickAddInput
+                onAddTask={addTask}
+                onCategorizationStart={() => setIsCategorizingTask(true)}
+                onCategorizationEnd={() => setIsCategorizingTask(false)}
+              />
             </div>
             <div className="flex items-center gap-3">
               <Button onClick={handleLoadSampleData} variant="outline" size="sm" className="gap-2 bg-transparent">
@@ -243,7 +342,7 @@ export default function HomePage() {
 
           <KanbanBoard
             tasks={tasks}
-            onTaskMove={moveTask}
+            onTaskMove={handleTaskMove}
             onTaskAdd={addTask}
             onTaskDelete={deleteTask}
             onTaskEdit={updateTask}
