@@ -1,7 +1,7 @@
 "use client"
 
 import type { Task } from "../types/task"
-import { AI_CONFIG, AI_PROMPTS, getApiKey } from "./ai-config"
+import { AI_PROMPTS } from "./ai-config"
 
 interface CategorizedTask {
   lane: Task["lane"]
@@ -9,33 +9,20 @@ interface CategorizedTask {
 }
 
 export async function categorizeTask(taskTitle: string, taskDescription?: string): Promise<CategorizedTask> {
-  const apiKey = getApiKey()
-
-  if (!apiKey) {
-    console.error("[Task Categorizer] No OpenRouter API key found")
-    throw new Error("OpenRouter API key not configured")
-  }
-
   const prompt = AI_PROMPTS.CATEGORIZE_TASK(taskTitle, taskDescription)
 
   console.log("[Task Categorizer] Starting categorization for task:", taskTitle)
-  console.log("[Task Categorizer] Using model:", AI_CONFIG.MODEL_NAME)
   console.log("[Task Categorizer] Full prompt:", prompt)
 
   try {
-    const response = await fetch(AI_CONFIG.ENDPOINT, {
+    const response = await fetch("/api/ai", {
       method: "POST",
-      headers: AI_CONFIG.getHeaders(apiKey),
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: AI_CONFIG.MODEL,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: AI_CONFIG.TEMPERATURE,
-        max_tokens: AI_CONFIG.MAX_TOKENS
+        prompt,
+        type: "categorize"
       })
     })
 
@@ -44,23 +31,33 @@ export async function categorizeTask(taskTitle: string, taskDescription?: string
     if (!response.ok) {
       const errorText = await response.text()
       console.error("[Task Categorizer] API Error:", errorText)
-      throw new Error(`OpenRouter API error: ${response.status}`)
+      throw new Error(`API error: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log("[Task Categorizer] Raw API response:", data)
+    console.log("[Task Categorizer] API response:", data)
 
-    const content = data.choices?.[0]?.message?.content
-    if (!content) {
-      console.error("[Task Categorizer] No content in response")
-      throw new Error("No response content from AI")
+    // The API route already parses the JSON, so data should be the parsed object
+    // or it might have a content field if parsing failed server-side
+    let parsed: CategorizedTask
+
+    if (data.content && typeof data.content === 'string') {
+      // If we got raw content back, parse it
+      try {
+        parsed = JSON.parse(data.content) as CategorizedTask
+      } catch (parseError) {
+        console.error("[Task Categorizer] Failed to parse content:", parseError)
+        throw new Error("Failed to parse AI response")
+      }
+    } else if (data.lane && data.reasoning) {
+      // Already parsed on server
+      parsed = data as CategorizedTask
+    } else {
+      console.error("[Task Categorizer] Unexpected response format:", data)
+      throw new Error("Unexpected response format from API")
     }
 
-    console.log("[Task Categorizer] AI response content:", content)
-
-    // Parse the JSON response
     try {
-      const parsed = JSON.parse(content.trim()) as CategorizedTask
       console.log("[Task Categorizer] Parsed categorization:", parsed)
 
       // Validate the response

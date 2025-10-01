@@ -1,7 +1,7 @@
 "use client"
 
 import type { Task } from "../types/task"
-import { AI_CONFIG, AI_PROMPTS, getApiKey } from "./ai-config"
+import { AI_PROMPTS } from "./ai-config"
 
 interface SubtaskItem {
   title: string
@@ -19,34 +19,21 @@ export async function breakdownTask(
   taskDescription?: string,
   currentLane?: Task["lane"]
 ): Promise<BreakdownResult> {
-  const apiKey = getApiKey()
-
-  if (!apiKey) {
-    console.error("[Task Breakdown] No OpenRouter API key found")
-    throw new Error("OpenRouter API key not configured")
-  }
-
   const prompt = AI_PROMPTS.BREAKDOWN_TASK(taskTitle, taskDescription, currentLane)
 
   console.log("[Task Breakdown] Starting breakdown for task:", taskTitle)
   console.log("[Task Breakdown] Current lane:", currentLane)
-  console.log("[Task Breakdown] Using model:", AI_CONFIG.MODEL_NAME)
   console.log("[Task Breakdown] Full prompt:", prompt)
 
   try {
-    const response = await fetch(AI_CONFIG.ENDPOINT, {
+    const response = await fetch("/api/ai", {
       method: "POST",
-      headers: AI_CONFIG.getHeaders(apiKey),
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        model: AI_CONFIG.MODEL,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: AI_CONFIG.TEMPERATURE,
-        max_tokens: AI_CONFIG.MAX_TOKENS
+        prompt,
+        type: "breakdown"
       })
     })
 
@@ -55,23 +42,34 @@ export async function breakdownTask(
     if (!response.ok) {
       const errorText = await response.text()
       console.error("[Task Breakdown] API Error:", errorText)
-      throw new Error(`OpenRouter API error: ${response.status}`)
+      throw new Error(`API error: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log("[Task Breakdown] Raw API response:", data)
+    console.log("[Task Breakdown] API response:", data)
 
-    const content = data.choices?.[0]?.message?.content
-    if (!content) {
-      console.error("[Task Breakdown] No content in response")
-      throw new Error("No response content from AI")
+    // The API route already parses the JSON, so data should be the parsed object
+    // or it might have a content field if parsing failed server-side
+    let parsed: BreakdownResult
+
+    if (data.content && typeof data.content === 'string') {
+      // If we got raw content back, parse it
+      try {
+        parsed = JSON.parse(data.content) as BreakdownResult
+      } catch (parseError) {
+        console.error("[Task Breakdown] Failed to parse content:", parseError)
+        throw new Error("Failed to parse AI response")
+      }
+    } else if (data.subtasks && data.overall_approach) {
+      // Already parsed on server
+      parsed = data as BreakdownResult
+    } else {
+      console.error("[Task Breakdown] Unexpected response format:", data)
+      throw new Error("Unexpected response format from API")
     }
 
-    console.log("[Task Breakdown] AI response content:", content)
-
-    // Parse the JSON response
+    // Continue with validation
     try {
-      const parsed = JSON.parse(content.trim()) as BreakdownResult
       console.log("[Task Breakdown] Parsed breakdown:", parsed)
 
       // Validate the response

@@ -5,6 +5,7 @@ import packageInfo from "../package.json"
 
 export function VersionFooter() {
   const [commitHash, setCommitHash] = useState<string | null>(null)
+  const [deployTime, setDeployTime] = useState<string>('')
 
   useEffect(() => {
     // Get git commit hash if available (usually in production builds)
@@ -12,6 +13,11 @@ export function VersionFooter() {
     if (gitSha) {
       setCommitHash(gitSha.slice(0, 7)) // Use first 7 chars of commit hash
     }
+
+    // Set deploy timestamp in ISO 8601 format
+    // Use build time from env variable (set during build) or current time in dev
+    const timestamp = process.env.NEXT_PUBLIC_BUILD_TIME || new Date().toISOString()
+    setDeployTime(timestamp)
   }, [])
 
   return (
@@ -19,7 +25,7 @@ export function VersionFooter() {
       <div className="flex justify-center p-2">
         <div className="text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors pointer-events-auto">
           <span className="select-none">
-            v{packageInfo.version}
+            v{packageInfo.version} • {deployTime}
             {commitHash && (
               <>
                 {" • "}
